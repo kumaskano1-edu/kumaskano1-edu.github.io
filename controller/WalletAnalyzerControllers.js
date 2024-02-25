@@ -2,29 +2,37 @@
 const axios = require('axios');
 require('dotenv').config();
 const mongoose = require('mongoose');
+const https = require('https');
 const User = require("../model/User")
-const uri = process.env.URL_DB;
-mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('Connected to MongoDB Atlas');
-    })
-  .catch((err) => {
-    console.error('Error connecting to MongoDB Atlas:', err);
-});
+let web3 = require('web3')
+const util = require('util');
 
+const { Connection, PublicKey } = require('@solana/web3.js');
+
+const uri = process.env.URL_DB;
+const { programs } = require('@metaplex/js');
+const { Metadata } = programs.metadata;
+let today = new Date();
+    today.setMonth(today.getMonth() - 1);
+    if (today.getMonth() === 11) {
+        today.setFullYear(today.getFullYear() - 1);
+    }
+let millisecondsSinceEpoch = today.getTime();
+let millisecondsString = millisecondsSinceEpoch.toString();
+// mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then(() => {
+//     console.log('Connected to MongoDB Atlas');
+//     })
+//   .catch((err) => {
+//     console.error('Error connecting to MongoDB Atlas:', err);
+// });
+/* ETH CONTROLLER */
 async function processWalletDataMain(walletAddress) {
   let responseJson = {};
   try {
     if (!walletAddress) {
       throw new Error('Wallet address is required.');
     }
-    let today = new Date();
-    today.setMonth(today.getMonth() - 1);
-    if (today.getMonth() === 11) {
-        today.setFullYear(today.getFullYear() - 1);
-    }
-    let millisecondsSinceEpoch = today.getTime();
-    let millisecondsString = millisecondsSinceEpoch.toString();
     let options = {
       method: 'GET',
       url: `https://api.zerion.io/v1/wallets/${walletAddress}/transactions/`,
@@ -150,6 +158,171 @@ async function processWalletDataMain(walletAddress) {
   console.error('Error fetching or processing wallet data:', error.message);
   throw error; 
 }}
+/* SOLANA CONTROLLER */
+async function processWalletDataSolana(walletAdress) {
+  let responseJson = {};
+  if(!walletAdress) {
+    throw new Error("No Wallet Here")
+  }
+  const currentDate = new Date();
+  const currentEpochSeconds = Math.floor(currentDate.getTime() / 1000);
+  const sevenDaysAgoEpochSeconds = currentEpochSeconds - (7 * 24 * 60 * 60);
+
+  const url = `https://api.solana.fm/v0/accounts/${walletAdress}/transactions?utcFrom=${sevenDaysAgoEpochSeconds}&utcTo=${currentEpochSeconds}&page=1`
+  try {
+    let response = await axios.get(url);
+    responseJson = await computeAnalytics(response.data)
+    return responseJson
+  } catch(error) {
+    throw new Error(error.message)
+  }
+}
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+async function fetchTransactionDetails(signature) {
+  const solana = new Connection("https://docs-demo.solana-mainnet.quiknode.pro/");
+  try {
+    const transactionDetails = await solana.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
+    return transactionDetails
+  } catch (error) {
+    throw new Error(error.message)
+  }
+}
+//GETs an array of transactions with their pnls
+async function fetchDetailsForAllTransactions(transactions) {
+  let transactionsArray = []
+  for (const transaction of transactions.result.data) {
+      const signature = transaction.signature; // Assuming the signature is stored here
+      let details = {}
+      try {
+        details = await fetchTransactionDetails(signature);
+      } catch(error) {
+        throw new Error(error.message)
+      }
+      let postBalanceSolana = 0;
+      let preBalanceSolana = 0;
+      let preBalanceToken = 0;
+      let postBalanceToken = 0;
+      let tokenAdress = "";
+      let comission = 0;
+      let difference = 0;
+      let dateInMiliseconds = 0;
+      if(details) {
+        dateInMiliseconds = details.blockTime
+           postBalanceSolana = details.meta.postBalances[0]
+           preBalanceSolana = details.meta.preBalances[0]
+           if(details.meta.postTokenBalances.length > 0) {
+              postBalanceToken = details.meta.postTokenBalances[0].uiTokenAmount.amount
+              tokenAdress = details.meta.postTokenBalances[0].mint
+           }
+           if(details.meta.preTokenBalances.length > 0) {
+            preBalanceToken = details.meta.preTokenBalances[0].uiTokenAmount.amount
+           }
+           comission = details.meta.fee
+           differenceInSolana = postBalanceSolana - preBalanceSolana
+      }
+      let transactionObject = {
+          name: '',
+          symbol: '',
+          signature: signature,
+          postBalanceSolana: postBalanceSolana,
+          preBalanceSolana: preBalanceSolana,
+          preBalanceToken:  parseFloat(preBalanceToken),
+          postBalanceToken: parseFloat(postBalanceToken),
+          differenceInSolana: differenceInSolana,
+          comission: comission,
+          tokenAdress: tokenAdress
+      }
+      transactionsArray.push(transactionObject)
+      await delay(150);
+  }
+  return transactionsArray
+}
+const getMetadataforCoin = async (mint) => {
+  if(mint === "") {
+    return ["Unknown Coin", "Unknown Symbol"]
+  }
+  const connection = new Connection('https://api.mainnet-beta.solana.com');
+  const mintPublicKey = new PublicKey(mint);
+  let array = []
+  const pda = await Metadata.getPDA(mintPublicKey);
+  const metadata = await Metadata.load(connection, pda);
+
+  let name = metadata.data.data.name;
+  let symbol = metadata.data.data.symbol
+  if(!name) {
+      array[0] = 'Unknown Coin'
+  }
+  if(!symbol) {
+      array[1] = "Unknown Symbol"
+  }
+  return [name, symbol]
+};
+//function to compute and make analytics 
+async function computeAnalytics(transactions) {
+  let processedTransactions = []
+  try {
+    processedTransactions = await fetchDetailsForAllTransactions(transactions);
+  }catch(error) {
+    throw new Error(error.message)
+  }
+  let analytics = new Map();
+  // //use API to get symbol and coin Name 
+  if(processedTransactions.length <= 0) {
+    throw new Error("No Transactions in last 7 days")
+  }
+  processedTransactions.forEach(async (transaction) => {
+  //     //check if the adress is in the map, if not set an adress as new {}
+       if(!analytics.has(transaction.tokenAdress)) {
+           analytics.set(transaction.tokenAdress, {
+               name: '',
+               symbol: '',
+               profitableTrades: 0,
+               lossTrades: 0,
+               pnlForCoin: 0,
+               tokensIn: 0,
+               tokensOut: 0,
+              tokensLeft: 0,
+               comission: 0
+           })
+       }
+       let tokenObjectFromMap = analytics.get(transaction.tokenAdress);
+       // //Calculated profitable and loss trades as well as the total PNL for coin 
+       let differenceInSolana = (transaction.postBalanceSolana - transaction.preBalanceSolana) / 1000000000; 
+      if(differenceInSolana >= 0) {
+          tokenObjectFromMap.profitableTrades += differenceInSolana 
+      } else {
+          tokenObjectFromMap.lossTrades -= differenceInSolana
+      }
+       tokenObjectFromMap.pnlForCoin += differenceInSolana;
+       //Calculated TokensIn and TokensOut as well as TotalTokensLeft
+       let differenceInToken = transaction.postBalanceToken - transaction.preBalanceToken;
+       if(differenceInToken >= 0) {
+           tokenObjectFromMap.tokensIn += differenceInToken
+       } else {
+          tokenObjectFromMap.tokensOut -= differenceInToken
+      }
+      tokenObjectFromMap.tokensLeft += differenceInToken
+      //calculate comission 
+      tokenObjectFromMap.comission += (transaction.comission) / 1000000000
+  })
+  //finding names and symbols of each coin
+  for (let [key, object] of analytics.entries()) {
+      let newObject = object; 
+      try{
+          let metaData = await getMetadataforCoin(key)
+          newObject.name = metaData[0];
+          newObject.symbol = metaData[1];
+          analytics.set(key, newObject)
+      }catch(error) {
+        throw new Error(error.message)
+      }
+  }
+  
+  return analytics
+}
+/* ADMIN CONTROLLERS  */
 async function createUser(req, res) {
   try {
     // Create a new user document
@@ -245,6 +418,7 @@ async function checkProStatus(req, res) {
 }
 module.exports = {
   processWalletDataMain,
+  processWalletDataSolana,
   createUser,
   getUser,
   incrementUserCount, 

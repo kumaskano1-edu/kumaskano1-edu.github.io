@@ -1,12 +1,10 @@
 // routes/walletRoutes.js
 const express = require('express');
 const router = express.Router();
-const walletController = require('../controller/WalletAnalyzerControllers');
-
+const walletController = require('../controller/WalletAnalyzerControllers'); 
 // Route to handle processing Ethereum wallet data
 router.post('/analyze', async (req, res) => {
   const walletAddress = req.body.walletAddress;
-
   try {
     // Process the wallet data using the controller
     const processedData = await walletController.processWalletDataMain(walletAddress);
@@ -16,6 +14,19 @@ router.post('/analyze', async (req, res) => {
     res.status(400).json({ error: error.message});
   }
 });
+
+router.post('/analyze-solana', async (req, res) => {
+  const walletAddress = req.body.walletAddress;
+  try {
+    // Process the wallet data using the controller
+    const processedData = await walletController.processWalletDataSolana(walletAddress);
+    const obj = Object.fromEntries(processedData);
+    res.json(obj);
+  } catch (error) {
+    // Handle errors
+    res.status(400).json({ error: error.message});
+  }
+})
 
 router.post("/checkProStatus", walletController.checkProStatus)
 router.post("/removeProStatus", walletController.removeProStatus)
