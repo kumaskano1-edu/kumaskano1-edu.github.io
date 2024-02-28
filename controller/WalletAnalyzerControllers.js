@@ -166,7 +166,9 @@ async function processWalletDataSolana(walletAdress) {
   }
   const currentDate = new Date();
   let currentEpochSeconds = Math.floor(currentDate.getTime() / 1000);
+  currentEpochSeconds = 1708337487
   let sevenDaysAgoEpochSeconds = currentEpochSeconds - (7 * 24 * 60 * 60);
+  sevenDaysAgoEpochSeconds = 1707473487
   const url = `https://api.solana.fm/v0/accounts/${walletAdress}/transactions?utcFrom=${sevenDaysAgoEpochSeconds}&utcTo=${currentEpochSeconds}&page=1`
   try {
     let response = await axios.get(url);
@@ -207,8 +209,9 @@ async function fetchDetailsForAllTransactions(transactions) {
       let comission = 0;
       let difference = 0;
       let dateInMiliseconds = 0;
+      console.log(details, null, 2)
       if(details) {
-        dateInMiliseconds = details.blockTime
+           dateInMiliseconds = details.blockTime
            postBalanceSolana = details.meta.postBalances[0]
            preBalanceSolana = details.meta.preBalances[0]
            if(details.meta.postTokenBalances.length > 0) {
@@ -222,6 +225,7 @@ async function fetchDetailsForAllTransactions(transactions) {
            differenceInSolana = postBalanceSolana - preBalanceSolana
       }
       let transactionObject = {
+          dateInMiliseconds: dateInMiliseconds,
           name: '',
           symbol: '',
           signature: signature,
@@ -247,7 +251,6 @@ const getMetadataforCoin = async (mint) => {
   let array = []
   const pda = await Metadata.getPDA(mintPublicKey);
   const metadata = await Metadata.load(connection, pda);
-
   let name = metadata.data.data.name;
   let symbol = metadata.data.data.symbol
   if(!name) {
