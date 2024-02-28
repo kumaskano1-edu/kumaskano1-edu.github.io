@@ -1,131 +1,116 @@
-const jsondata = require('./data')
-const fs = require('fs');
-const axios = require('axios')
-//array of token attributes 
-const response = {}
+const { cp } = require("fs");
 
-// function populateResponseArrayWithTokens()
-// function calculateAttributesForEachToken() 
-async function processWalletDataMain(walletAddress) {
-    try {
-      // check for correctness of wallet
-      if (!walletAddress) {
-        throw new Error('Wallet address is required.');
-      }
-      const today = new Date();
-      const millisecondsSinceEpoch = today.getTime();
-      const millisecondsString = millisecondsSinceEpoch.toString();
-      const dateOption =  `filter[min_mined_at]: ${millisecondsString}`
-
-      const options = {
-        method: 'GET',
-        url: `https://api.zerion.io/v1/wallets/${walletAddress}/transactions/`,
-        params: {
-          currency: 'usd',
-          'page[size]': '100',
-          'filter[operation_types]': 'trade',
-          'filter[asset_types]': 'fungible',
-           dateOption,
-          'filter[trash]': 'only_non_trash'
-        },
-        headers: {
-          accept: 'application/json',
-          authorization: 'Basic emtfZGV2X2ZiMGIyMTIxOWRkYjQ5MGQ5MzUyMTkxNTI2ZmQyNDk5Og=='
-        }
-      };
-  
-      return axios
-      .request(options)
-      .then(function (response) {
-        const walletData = response.data;
-        console.log(walletData)
-        if (!walletData) {
-          throw new Error('Invalid data received from the API.');
-        }
-        // Continue with additional logic or processing here if needed
-        const allTradedCoins = {};
-        walletData.data.forEach(transaction => {
-          const singleCoin = {
-            symbol: "",
-            name: "",
-            quantityIn: 0,
-            quantityOut: 0,
-            comission: 0,
-            tokensLeft: 0,
-            tokensLeftUSD: 0,
-            valueIn: 0,
-            valueOut: 0, 
-            pnl: 0,
-            pnlPercentage: 0,
-            buyTrades: 0,
-            sellTrades: 0
-          }
-        const transfers = transaction.attributes.transfers;
-          let transactionValue = 0;
-          let coinSymbol = "";
-          let valueIn = 0; valueOut = 0;
-        transfers.forEach(transfer => {
-          if (transfer.fungible_info) {
-              if(transfer.fungible_info.symbol !== "ETH") 
-              {
-                  coinSymbol = transfer.fungible_info.symbol;
-                  const coinName = transfer.fungible_info.name;
-                  if (!allTradedCoins[coinSymbol]) {
-                      allTradedCoins[coinSymbol] = singleCoin
-                      allTradedCoins[coinSymbol].symbol = coinSymbol
-                      allTradedCoins[coinSymbol].name = coinName
-                  }
-                  const quantity = parseFloat(transfer.quantity.float);
-                  if (transfer.direction === 'in') {
-                      allTradedCoins[coinSymbol].quantityIn += quantity
-                      allTradedCoins[coinSymbol].buyTrades++
-                  }
-                  else if (transfer.direction === 'out') {
-                      allTradedCoins[coinSymbol].quantityOut += quantity
-                      allTradedCoins[coinSymbol].sellTrades++
-  
-                  }
-              }
-              else {
-                  transactionValue = transfer.value
-                  if (transfer.direction === 'out') {
-                      valueIn += transactionValue
-                  }
-                  if (transfer.direction === 'in') {
-                      valueOut += transactionValue
-                  }
-              }
-      }})
-      allTradedCoins[coinSymbol].valueIn += valueIn;
-      allTradedCoins[coinSymbol].valueOut += valueOut;
-    })
-  
-    const allTradedCoinsArray = Object.values(allTradedCoins);
-      for (let singlePopulatedToken of allTradedCoinsArray) {
-          //PUT ALL CALCULATIONS HERE PNL AND ETC
-          let tokensLeft = singlePopulatedToken.quantityIn - singlePopulatedToken.quantityOut;
-          let tokensLeftUSD = tokensLeft * singlePopulatedToken.valueOut / singlePopulatedToken.quantityOut
-          let coinsPNL = singlePopulatedToken.valueOut - singlePopulatedToken.valueIn
-          let coinsPNLpercentage = coinsPNL / singlePopulatedToken.valueIn * 100
-  
-  
-          ////
-          singlePopulatedToken.tokensLeft = tokensLeft;
-          singlePopulatedToken.tokensLeftUSD = tokensLeftUSD
-          singlePopulatedToken.coinsPNL = coinsPNL
-          singlePopulatedToken.coinsPNLpercentage = coinsPNLpercentage
-  
-      }
-      return {allTradedCoinsArray}
-  });
-  } catch (error) {
-    console.error('Error fetching or processing wallet data:', error.message);
-    throw error;
-  }}
-
-
-async function main() {
-    const response = await processWalletDataMain("0x5da04eb0e28a06798797f54deb17cc014c525370")
-    console.log(response)
+let apiData = {
+  "9nZQhsQ7Bymi4rEuResfSLcWc8KFRQUxGffkLDE7uVny": {
+    "name": "PENKE",
+    "symbol": "PENKE",
+    "profitableTrades": 4.697622346,
+    "lossTrades": 4.00247428,
+    "pnlForCoin": 0.695148066,
+    "tokensIn": 70593747099220,
+    "tokensOut": 74310265491387,
+    "tokensLeft": 0,
+    "comission": 0.00054
+  },
+  "": {
+    "name": "Unknown Coin",
+    "symbol": "Unknown Symbol",
+    "profitableTrades": 0,
+    "lossTrades": 5.00053,
+    "pnlForCoin": -5.00053,
+    "tokensIn": 0,
+    "tokensOut": 0,
+    "tokensLeft": 0,
+    "comission": 0.00003
+  },
+  "So11111111111111111111111111111111111111112": {
+    "name": "Wrapped SOL",
+    "symbol": "SOL",
+    "profitableTrades": 0,
+    "lossTrades": 0.000065,
+    "pnlForCoin": -0.000065,
+    "tokensIn": 0,
+    "tokensOut": 0,
+    "tokensLeft": 0,
+    "comission": 0.000065
+  },
+  "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263": {
+    "name": "Bonk",
+    "symbol": "Bonk",
+    "profitableTrades": 0.001299339,
+    "lossTrades": 0.00007,
+    "pnlForCoin": 0.001229339,
+    "tokensIn": 2512344380,
+    "tokensOut": 0,
+    "tokensLeft": 2512344380,
+    "comission": 0.000175
+  },
+  "T1oYbAejEESrZLtSAjumAXhzFqZGNxQ4kVN9vPUoxMv": {
+    "name": "Daumenfrosch",
+    "symbol": "$daumen",
+    "profitableTrades": 1.727481512,
+    "lossTrades": 2.00214428,
+    "pnlForCoin": -0.274662768,
+    "tokensIn": 871583724895,
+    "tokensOut": 872619239063,
+    "tokensLeft": -1035514168,
+    "comission": 0.00021
+  },
+  "2YuSzANgyU9rkFJn5aiAPJqN1kHgtZVQb4nWs1JLjLCw": {
+    "name": "Generational Wealth",
+    "symbol": "Wealth",
+    "profitableTrades": 1.573161137,
+    "lossTrades": 2.00218428,
+    "pnlForCoin": -0.429023143,
+    "tokensIn": 84076119952612,
+    "tokensOut": 2917530945910621,
+    "tokensLeft": -2833454825958009,
+    "comission": 0.00025
+  },
+  "2xP43MawHfU7pwPUmvkc6AUWg4GX8xPQLTGMkSZfCEJT": {
+    "name": "Shinobi",
+    "symbol": "NINJA",
+    "profitableTrades": 3.383802379,
+    "lossTrades": 2.00218428,
+    "pnlForCoin": 1.381618099,
+    "tokensIn": 225814586125412,
+    "tokensOut": 225814586125412,
+    "tokensLeft": 0,
+    "comission": 0.00025
+  }
 }
-main()
+
+function makeCalculationsAndSendMessage(data) {
+  
+  let Pnl = 0;
+  let ROI = 0;
+  let Winrate = 0;
+  let soldmorethenbought = 0;
+  let uniqueTokens = 0;
+  let shitTrades = 0;
+  let redTrades = 0;
+  let blueTrades = 0;
+  let greenTrades = 0;
+  let rocketTrades = 0;
+  let buys = 0;
+  let sells = 0;
+  let avgBuySum = 0;
+  let comission = 0;
+  
+  let keysArray = Object.keys(data);
+  let valuesArray = Object.values(data)
+
+  for (let i = 0; i < valuesArray.length; i++) {
+    if (valuesArray[i].tokensLeft < 0) { // Skip even numbers
+      continue;
+    }
+    if(valuesArray[i].tokensOut === 0) {
+      continue
+    }    
+    Pnl += valuesArray[i].pnlForCoin
+    console.log(valuesArray[i])
+  }
+  Pnl = Pnl - comission  
+} 
+ 
+makeCalculationsAndSendMessage(apiData)

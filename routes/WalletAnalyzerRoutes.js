@@ -20,8 +20,7 @@ router.post('/analyze-solana', async (req, res) => {
   try {
     // Process the wallet data using the controller
     const processedData = await walletController.processWalletDataSolana(walletAddress);
-    const obj = Object.fromEntries(processedData);
-    res.json(obj);
+    res.json(processedData);
   } catch (error) {
     // Handle errors
     res.status(400).json({ error: error.message});
