@@ -30,8 +30,10 @@ router.post('/analyze-solana', async (req, res) => {
 })
 
 router.post("/checkProStatus", walletController.checkProStatus)
-router.post("/removeProStatus", walletController.removeProStatus)
-router.post("/addProStatus", walletController.addProStatus)
+router.post("/removeProStatusSol", walletController.removeProStatusSol)
+router.post("/addProStatusSol", walletController.addProStatusSol)
+router.post("/removeProStatusEth", walletController.removeProStatusEth)
+router.post("/addProStatusEth", walletController.addProStatusEth)
 // router.get("/listAllPros") 
 // //--------------------
 // //--------------------

@@ -7,9 +7,21 @@ const userSchema = new mongoose.Schema({
       required: true,
       unique: true
     },
-    proMember: {
+    proMemberSol: {
       type: Boolean,
-      default: false
+      default: false,
+    },
+    proMemberEth: {
+      type: Boolean,
+      default: false,      
+    },
+    datetimeEth: {
+      type: String,
+      default: ""
+    },
+    datetimeSol: {
+      type: String,
+      default: ""
     },
     triesCount: {
       type: Number,

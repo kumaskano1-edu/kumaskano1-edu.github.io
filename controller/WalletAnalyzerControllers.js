@@ -273,9 +273,13 @@ async function createUser(req, res) {
     // Create a new user document
     const userData = {
       telegramId: req.body.telegramId,
-      proMember: false,
+      proMemberSol: false,
+      proMemberEth: false,
+      datetimeEth: "",
+      datetimeSol: "",
       triesCount: 0
     };
+    
     const newUser = new User(userData);
 
     // Save the user to the database
@@ -316,15 +320,18 @@ async function incrementUserCount(req, res) {
     return
   }
 };  
-async function addProStatus(req, res) {
+async function addProStatusSol(req, res) {
   try {
+    const date = new Date();
+    const dateString = date.toISOString();
     const telegramId = req.body.telegramId;
     const user = await User.findOne({ telegramId: telegramId });
     // If user is not found, return 404 status
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    user.proMember = true;
+    user.proMemberSol = true;
+    user.datetimeSol = dateString
     await user.save();
     res.status(200).json(user);
   } catch (error) {
@@ -332,7 +339,26 @@ async function addProStatus(req, res) {
     res.status(500).json({ error: 'Error adding pro status' });
   }
 };
-async function removeProStatus(req, res) {
+async function addProStatusEth(req, res) {
+  try {
+    const telegramId = req.body.telegramId;
+    const date = new Date();
+    const dateString = date.toISOString();
+    const user = await User.findOne({ telegramId: telegramId });
+    // If user is not found, return 404 status
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    user.proMemberEth = true;
+    user.datetimeEth = dateString
+    await user.save();
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error adding pro status:', error);
+    res.status(500).json({ error: 'Error adding pro status' });
+  }
+};
+async function removeProStatusSol(req, res) {
   try {
     const telegramId = req.body.telegramId;
     const user = await User.findOne({ telegramId });
@@ -340,7 +366,25 @@ async function removeProStatus(req, res) {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    user.proMember = false;
+    user.proMemberSol = false;
+    user.datetimeSol = ""
+    await user.save();
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error adding pro status:', error);
+    res.status(500).json({ error: 'Error adding pro status' });
+  }
+};
+async function removeProStatusEth(req, res) {
+  try {
+    const telegramId = req.body.telegramId;
+    const user = await User.findOne({ telegramId });
+    // If user is not found, return 404 status
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    user.proMemberEth = false;
+    user.datetimeEth = ""
     await user.save();
     res.status(200).json(user);
   } catch (error) {
@@ -367,7 +411,9 @@ module.exports = {
   createUser,
   getUser,
   incrementUserCount, 
-  addProStatus,
-  removeProStatus,
+  addProStatusSol,
+  removeProStatusSol,
+  removeProStatusEth,
+  addProStatusEth,
   checkProStatus
 };
