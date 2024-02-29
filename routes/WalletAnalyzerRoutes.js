@@ -29,7 +29,8 @@ router.post('/analyze-solana', async (req, res) => {
   }
 })
 
-router.post("/checkProStatus", walletController.checkProStatus)
+router.post("/checkProStatusSol", walletController.checkProStatusSol)
+router.post("/checkProStatusEth", walletController.checkProStatusEth)
 router.post("/removeProStatusSol", walletController.removeProStatusSol)
 router.post("/addProStatusSol", walletController.addProStatusSol)
 router.post("/removeProStatusEth", walletController.removeProStatusEth)

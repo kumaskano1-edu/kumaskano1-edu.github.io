@@ -453,6 +453,8 @@ module.exports = {
   processWalletDataSolana,
   createUser,
   getUser,
+  checkProStatusEth,
+  checkProStatusSol,
   incrementUserCount, 
   addProStatusSol,
   removeProStatusSol,
