@@ -188,16 +188,10 @@ async function processWalletDataSolana(walletAdress) {
 }
 async function computeAnalytics(transactions) {
   let processedTransactions = []
-  let tokenAdressNameSymbol = new Map()
   try {
     let response = await fetchDetailsForAllTransactions(transactions);
     response.forEach(async (transaction) => {
       if(transaction.tokenAdress) {
-        if(!tokenAdressNameSymbol.has(transaction.tokenAdress)) {
-          let namesymbolarray = await getMetadataforCoin(transaction.tokenAdress)
-          transaction.name = tokenAdressNameSymbol.get[transaction.tokenAdress][0];
-          transaction.symbol = tokenAdressNameSymbol.get[transaction.tokenAdress][0];
-        }
         processedTransactions.push(transaction)
       }
     })
@@ -271,25 +265,6 @@ async function fetchTransactionDetails(signature) {
   }
 }
 
-const getMetadataforCoin = async (mint) => {
-  if(mint === "") {
-    return ["Unknown Coin", "Unknown Symbol"]
-  }
-  const connection = new Connection('https://api.mainnet-beta.solana.com');
-  const mintPublicKey = new PublicKey(mint);
-  let array = []
-  const pda = await Metadata.getPDA(mintPublicKey);
-  const metadata = await Metadata.load(connection, pda);
-  let name = metadata.data.data.name;
-  let symbol = metadata.data.data.symbol
-  if(!name) {
-      array[0] = 'Unknown Coin'
-  }
-  if(!symbol) {
-      array[1] = "Unknown Symbol"
-  }
-  return [name, symbol]
-};
 //function to compute and make analytics 
 
 /* ADMIN CONTROLLERS  */
