@@ -427,7 +427,7 @@ async function listProsEth(req, res) {
         listOfPros.push(user)
       }
     })
-    res.status(200).json(listofPros)
+    res.status(200).json(listOfPros)
   }catch(error) {
     console.error('Error checking pro status:', error);
     res.status(500).json({ error: 'Error checking pro status' });
@@ -442,7 +442,7 @@ async function listProsSol(req, res) {
         listOfPros.push(user)
       }
     })
-    res.status(200).json(listofPros)
+  res.status(200).json(listOfPros)
   }catch(error) {
     console.error('Error checking pro status:', error);
     res.status(500).json({ error: 'Error checking pro status' });
