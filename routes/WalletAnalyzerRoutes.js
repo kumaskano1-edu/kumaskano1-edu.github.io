@@ -34,7 +34,8 @@ router.post("/removeProStatusSol", walletController.removeProStatusSol)
 router.post("/addProStatusSol", walletController.addProStatusSol)
 router.post("/removeProStatusEth", walletController.removeProStatusEth)
 router.post("/addProStatusEth", walletController.addProStatusEth)
-// router.get("/listAllPros") 
+router.get("/listAllProsEth", walletController.listProsEth)
+router.get("/listAllProsSol", walletController.listProsSol) 
 // //--------------------
 // //--------------------
 router.post("/createUser", walletController.createUser);

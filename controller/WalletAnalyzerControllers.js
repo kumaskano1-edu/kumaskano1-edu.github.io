@@ -392,15 +392,58 @@ async function removeProStatusEth(req, res) {
     res.status(500).json({ error: 'Error adding pro status' });
   }
 };
-async function checkProStatus(req, res) {
+async function checkProStatusEth(req, res) {
   try {
     const { telegramId } = req.body.telegramId;
     const user = await User.findOne({ telegramId });
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    res.status(200).json({ proMember: user.proMember });
+    res.status(200).json({ proMemberEth: user.proMemberEth });
   } catch (error) {
+    console.error('Error checking pro status:', error);
+    res.status(500).json({ error: 'Error checking pro status' });
+  }
+}
+async function checkProStatusSol(req, res) {
+  try {
+    const { telegramId } = req.body.telegramId;
+    const user = await User.findOne({ telegramId });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.status(200).json({ proMemberSol: user.proMemberSol });
+  } catch (error) {
+    console.error('Error checking pro status:', error);
+    res.status(500).json({ error: 'Error checking pro status' });
+  }
+}
+async function listProsEth(req, res) {
+  let listOfPros = []
+  try {
+    const users = await User.find({});
+    users.forEach((user) => {
+      if(user.proMemberEth == true) {
+        listOfPros.push(user)
+      }
+    })
+    res.status(200).json(listofPros)
+  }catch(error) {
+    console.error('Error checking pro status:', error);
+    res.status(500).json({ error: 'Error checking pro status' });
+  }
+}
+async function listProsSol(req, res) {
+  let listOfPros = []
+  try {
+    const users = await User.find({});
+    users.forEach((user) => {
+      if(user.proMemberSol == true) {
+        listOfPros.push(user)
+      }
+    })
+    res.status(200).json(listofPros)
+  }catch(error) {
     console.error('Error checking pro status:', error);
     res.status(500).json({ error: 'Error checking pro status' });
   }
@@ -415,5 +458,6 @@ module.exports = {
   removeProStatusSol,
   removeProStatusEth,
   addProStatusEth,
-  checkProStatus
+  listProsEth,
+  listProsSol
 };
