@@ -182,7 +182,7 @@ function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function fetchTransactionDetails(signature) {
-  const solana = new Connection("https://docs-demo.solana-mainnet.quiknode.pro/");
+  const solana = new Connection("https://icy-rough-wildflower.solana-mainnet.quiknode.pro/93b3e383ff9d35fc3fe7c86419d5caca586aced3/");
   try {
     const transactionDetails = await solana.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
     return transactionDetails
@@ -207,9 +207,8 @@ async function fetchDetailsForAllTransactions(transactions) {
       let postBalanceToken = 0;
       let tokenAdress = "";
       let comission = 0;
-      let difference = 0;
+      let differenceInSolana = 0;
       let dateInMiliseconds = 0;
-      console.log(details, null, 2)
       if(details) {
            dateInMiliseconds = details.blockTime
            postBalanceSolana = details.meta.postBalances[0]
