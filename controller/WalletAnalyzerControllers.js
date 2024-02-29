@@ -188,10 +188,16 @@ async function processWalletDataSolana(walletAdress) {
 }
 async function computeAnalytics(transactions) {
   let processedTransactions = []
+  let tokenAdressNameSymbol = new Map()
   try {
     let response = await fetchDetailsForAllTransactions(transactions);
-    response.forEach((transaction) => {
+    response.forEach(async (transaction) => {
       if(transaction.tokenAdress) {
+        if(!tokenAdressNameSymbol.has(transaction.tokenAdress)) {
+          let namesymbolarray = await getMetadataforCoin(transaction.tokenAdress)
+          transaction.name = tokenAdressNameSymbol.get[transaction.tokenAdress][0];
+          transaction.symbol = tokenAdressNameSymbol.get[transaction.tokenAdress][0];
+        }
         processedTransactions.push(transaction)
       }
     })
@@ -202,19 +208,6 @@ async function computeAnalytics(transactions) {
   if(processedTransactions.length <= 0) {
     throw new Error("No Transactions in last 7 days")
   }
-  // //finding names and symbols of each coin
-  // for (let [key, object] of analytics.entries()) {
-  //     let newObject = object; 
-  //     try{
-  //         let metaData = await getMetadataforCoin(key)
-  //         newObject.name = metaData[0];
-  //         newObject.symbol = metaData[1];
-  //         analytics.set(key, newObject)
-  //     }catch(error) {
-  //       throw new Error(error.message)
-  //     }
-  // }
-  
   return processedTransactions
 }
 //GETs an array of transactions with their pnls
