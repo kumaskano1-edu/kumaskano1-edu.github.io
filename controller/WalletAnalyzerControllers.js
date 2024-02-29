@@ -158,6 +158,9 @@ async function processWalletDataMain(walletAddress) {
   console.error('Error fetching or processing wallet data:', error.message);
   throw error; 
 }}
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 /* SOLANA CONTROLLER */
 async function processWalletDataSolana(walletAdress) {
   let responseJson = {};
@@ -170,28 +173,54 @@ async function processWalletDataSolana(walletAdress) {
   const url = `https://api.solana.fm/v0/accounts/${walletAdress}/transactions?utcFrom=${sevenDaysAgoEpochSeconds}&utcTo=${currentEpochSeconds}&page=1`
   try {
     let response = await axios.get(url);
-    responseJson = await computeAnalytics(response.data)
+    let unsortedData = await response.data.result.data 
+    let sortedData = [];
+    unsortedData.forEach((transaction) => {
+      if (transaction.err == null && transaction.memo == null) {
+        sortedData.push(transaction)
+      }
+    })
+    responseJson = await computeAnalytics(sortedData)
     return responseJson
   } catch(error) {
     throw new Error(error.message)
   }
 }
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-async function fetchTransactionDetails(signature) {
-  const solana = new Connection("https://icy-rough-wildflower.solana-mainnet.quiknode.pro/93b3e383ff9d35fc3fe7c86419d5caca586aced3/");
+async function computeAnalytics(transactions) {
+  let processedTransactions = []
   try {
-    const transactionDetails = await solana.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
-    return transactionDetails
-  } catch (error) {
+    let response = await fetchDetailsForAllTransactions(transactions);
+    response.forEach((transaction) => {
+      if(transaction.tokenAdress) {
+        processedTransactions.push(transaction)
+      }
+    })
+  }catch(error) {
     throw new Error(error.message)
   }
+  // //use API to get symbol and coin Name 
+  if(processedTransactions.length <= 0) {
+    throw new Error("No Transactions in last 7 days")
+  }
+  // //finding names and symbols of each coin
+  // for (let [key, object] of analytics.entries()) {
+  //     let newObject = object; 
+  //     try{
+  //         let metaData = await getMetadataforCoin(key)
+  //         newObject.name = metaData[0];
+  //         newObject.symbol = metaData[1];
+  //         analytics.set(key, newObject)
+  //     }catch(error) {
+  //       throw new Error(error.message)
+  //     }
+  // }
+  
+  return processedTransactions
 }
 //GETs an array of transactions with their pnls
 async function fetchDetailsForAllTransactions(transactions) {
   let transactionsArray = []
-  for (const transaction of transactions.result.data) {
+  for (const transaction of transactions) {
       const signature = transaction.signature; // Assuming the signature is stored here
       let details = {}
       try {
@@ -239,6 +268,16 @@ async function fetchDetailsForAllTransactions(transactions) {
   }
   return transactionsArray
 }
+async function fetchTransactionDetails(signature) {
+  const solana = new Connection("https://icy-rough-wildflower.solana-mainnet.quiknode.pro/93b3e383ff9d35fc3fe7c86419d5caca586aced3/");
+  try {
+    const transactionDetails = await solana.getTransaction(signature, { maxSupportedTransactionVersion: 0 });
+    return transactionDetails
+  } catch (error) {
+    throw new Error(error.message)
+  }
+}
+
 const getMetadataforCoin = async (mint) => {
   if(mint === "") {
     return ["Unknown Coin", "Unknown Symbol"]
@@ -259,72 +298,7 @@ const getMetadataforCoin = async (mint) => {
   return [name, symbol]
 };
 //function to compute and make analytics 
-async function computeAnalytics(transactions) {
-  let processedTransactions = []
-  try {
-    let response = await fetchDetailsForAllTransactions(transactions);
-    response.forEach((transaction) => {
-      if(transaction.tokenAdress) {
-        processedTransactions.push(transaction)
-      }
-    })
-  }catch(error) {
-    throw new Error(error.message)
-  }
-  // //use API to get symbol and coin Name 
-  if(processedTransactions.length <= 0) {
-    throw new Error("No Transactions in last 7 days")
-  }
-  // processedTransactions.forEach(async (transaction) => {
-  // //     //check if the adress is in the map, if not set an adress as new {}
-  //      if(!analytics.has(transaction.tokenAdress)) {
-  //          analytics.set(transaction.tokenAdress, {
-  //              name: '',
-  //              symbol: '',
-  //              profitableTrades: 0,
-  //              lossTrades: 0,
-  //              pnlForCoin: 0,
-  //              tokensIn: 0,
-  //              tokensOut: 0,
-  //             tokensLeft: 0,
-  //              comission: 0
-  //          })
-  //      }
-  //      let tokenObjectFromMap = analytics.get(transaction.tokenAdress);
-  //      // //Calculated profitable and loss trades as well as the total PNL for coin 
-  //      let differenceInSolana = (transaction.postBalanceSolana - transaction.preBalanceSolana) / 1000000000; 
-  //     if(differenceInSolana >= 0) {
-  //         tokenObjectFromMap.profitableTrades += differenceInSolana 
-  //     } else {
-  //         tokenObjectFromMap.lossTrades -= differenceInSolana
-  //     }
-  //      tokenObjectFromMap.pnlForCoin += differenceInSolana;
-  //      //Calculated TokensIn and TokensOut as well as TotalTokensLeft
-  //      let differenceInToken = transaction.postBalanceToken - transaction.preBalanceToken;
-  //      if(differenceInToken >= 0) {
-  //          tokenObjectFromMap.tokensIn += differenceInToken
-  //      } else {
-  //         tokenObjectFromMap.tokensOut -= differenceInToken
-  //     }
-  //     tokenObjectFromMap.tokensLeft += differenceInToken
-  //     //calculate comission 
-  //     tokenObjectFromMap.comission += (transaction.comission) / 1000000000
-  // })
-  // //finding names and symbols of each coin
-  // for (let [key, object] of analytics.entries()) {
-  //     let newObject = object; 
-  //     try{
-  //         let metaData = await getMetadataforCoin(key)
-  //         newObject.name = metaData[0];
-  //         newObject.symbol = metaData[1];
-  //         analytics.set(key, newObject)
-  //     }catch(error) {
-  //       throw new Error(error.message)
-  //     }
-  // }
-  
-  return processedTransactions
-}
+
 /* ADMIN CONTROLLERS  */
 async function createUser(req, res) {
   try {
